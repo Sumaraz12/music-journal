@@ -13,7 +13,7 @@ type Entry = {
   user_id: string;
 };
 
-export default function Home(): JSX.Element {
+export default function Home() {
   const [user, setUser] = useState<User | null>(null);
 
   const [email, setEmail] = useState<string>("");
