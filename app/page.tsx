@@ -16,18 +16,18 @@ type Entry = {
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
 
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [title, setTitle] = useState<string>("");
-  const [artist, setArtist] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [notes, setNotes] = useState("");
 
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [message, setMessage] = useState<string>("");
+  const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  async function getUser(): Promise<void> {
+  async function getUser() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -35,7 +35,7 @@ export default function Home() {
     setUser(user);
   }
 
-  async function signUp(): Promise<void> {
+  async function signUp() {
     if (!email.trim() || !password.trim()) {
       setMessage("Please enter email and password.");
       return;
@@ -55,7 +55,7 @@ export default function Home() {
     setMessage("Signup successful. You can now log in.");
   }
 
-  async function signIn(): Promise<void> {
+  async function signIn() {
     if (!email.trim() || !password.trim()) {
       setMessage("Please enter email and password.");
       return;
@@ -74,14 +74,15 @@ export default function Home() {
 
     setMessage("Logged in successfully.");
     await getUser();
+    await fetchEntries();
   }
 
-  async function signOut(): Promise<void> {
+  async function signOut() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
       console.error("Logout error:", error);
-      setMessage("Could not log out.");
+      setMessage(error.message);
       return;
     }
 
@@ -90,7 +91,7 @@ export default function Home() {
     setMessage("Logged out.");
   }
 
-  async function fetchEntries(): Promise<void> {
+  async function fetchEntries() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -108,15 +109,16 @@ export default function Home() {
 
     if (error) {
       console.error("Fetch error:", error);
-      setMessage("Could not load entries.");
+      setMessage(error.message);
       return;
     }
 
     setEntries((data as Entry[]) || []);
-    setMessage("");
   }
 
-  async function addOrUpdateEntry(): Promise<void> {
+  async function addOrUpdateEntry() {
+    console.log("Save button clicked");
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -144,7 +146,7 @@ export default function Home() {
 
       if (error) {
         console.error("Update error:", error);
-        setMessage("Could not update entry.");
+        setMessage(error.message);
         return;
       }
 
@@ -162,7 +164,7 @@ export default function Home() {
 
       if (error) {
         console.error("Insert error:", error);
-        setMessage("Could not save entry.");
+        setMessage(error.message);
         return;
       }
 
@@ -172,11 +174,10 @@ export default function Home() {
     setTitle("");
     setArtist("");
     setNotes("");
-
     await fetchEntries();
   }
 
-  function editEntry(entry: Entry): void {
+  function editEntry(entry: Entry) {
     setEditingId(entry.id);
     setTitle(entry.title);
     setArtist(entry.artist);
@@ -184,7 +185,7 @@ export default function Home() {
     setMessage("Editing entry...");
   }
 
-  function cancelEdit(): void {
+  function cancelEdit() {
     setEditingId(null);
     setTitle("");
     setArtist("");
@@ -192,7 +193,7 @@ export default function Home() {
     setMessage("Edit cancelled.");
   }
 
-  async function deleteEntry(id: number): Promise<void> {
+  async function deleteEntry(id: number) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -210,16 +211,15 @@ export default function Home() {
 
     if (error) {
       console.error("Delete error:", error);
-      setMessage("Could not delete entry.");
+      setMessage(error.message);
       return;
     }
-
-    setMessage("Entry deleted.");
 
     if (editingId === id) {
       cancelEdit();
     }
 
+    setMessage("Entry deleted.");
     await fetchEntries();
   }
 
@@ -228,11 +228,11 @@ export default function Home() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        await fetchEntries();
+        fetchEntries();
       } else {
         setEntries([]);
       }
@@ -243,14 +243,8 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchEntries();
-    }
-  }, [user]);
-
   return (
-    <main style={{ padding: "40px", maxWidth: "700px", margin: "auto" }}>
+    <main style={{ padding: "40px", maxWidth: "700px", margin: "0 auto" }}>
       <h1>🎵 Music Journal</h1>
 
       {!user ? (
@@ -258,6 +252,8 @@ export default function Home() {
           <h2>Login / Signup</h2>
 
           <input
+            id="email"
+            name="email"
             type="email"
             placeholder="Email"
             value={email}
@@ -271,6 +267,8 @@ export default function Home() {
           />
 
           <input
+            id="password"
+            name="password"
             type="password"
             placeholder="Password"
             value={password}
@@ -284,27 +282,22 @@ export default function Home() {
           />
 
           <button
+            type="button"
             onClick={signUp}
-            style={{
-              padding: "10px 20px",
-              cursor: "pointer",
-              marginRight: "10px",
-            }}
+            style={{ padding: "10px 20px", marginRight: "10px", cursor: "pointer" }}
           >
             Sign Up
           </button>
 
           <button
+            type="button"
             onClick={signIn}
-            style={{
-              padding: "10px 20px",
-              cursor: "pointer",
-            }}
+            style={{ padding: "10px 20px", cursor: "pointer" }}
           >
             Log In
           </button>
 
-          {message && <p>{message}</p>}
+          {message ? <p>{message}</p> : null}
         </div>
       ) : (
         <>
@@ -312,12 +305,11 @@ export default function Home() {
             <p>
               Logged in as: <strong>{user.email}</strong>
             </p>
+
             <button
+              type="button"
               onClick={signOut}
-              style={{
-                padding: "10px 20px",
-                cursor: "pointer",
-              }}
+              style={{ padding: "10px 20px", cursor: "pointer" }}
             >
               Log Out
             </button>
@@ -325,6 +317,8 @@ export default function Home() {
 
           <div style={{ marginTop: "20px" }}>
             <input
+              id="title"
+              name="title"
               placeholder="Song title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -337,6 +331,8 @@ export default function Home() {
             />
 
             <input
+              id="artist"
+              name="artist"
               placeholder="Artist"
               value={artist}
               onChange={(e) => setArtist(e.target.value)}
@@ -349,6 +345,8 @@ export default function Home() {
             />
 
             <textarea
+              id="notes"
+              name="notes"
               placeholder="Notes or YouTube link..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -362,29 +360,32 @@ export default function Home() {
             />
 
             <button
+              type="button"
               onClick={addOrUpdateEntry}
               style={{
                 padding: "10px 20px",
-                cursor: "pointer",
                 marginRight: "10px",
+                cursor: "pointer",
+                backgroundColor: "#222",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
               }}
             >
               {editingId !== null ? "Update Entry" : "Save Entry"}
             </button>
 
-            {editingId !== null && (
+            {editingId !== null ? (
               <button
+                type="button"
                 onClick={cancelEdit}
-                style={{
-                  padding: "10px 20px",
-                  cursor: "pointer",
-                }}
+                style={{ padding: "10px 20px", cursor: "pointer" }}
               >
                 Cancel
               </button>
-            )}
+            ) : null}
 
-            {message && <p>{message}</p>}
+            {message ? <p>{message}</p> : null}
           </div>
 
           <hr style={{ margin: "30px 0" }} />
@@ -409,7 +410,7 @@ export default function Home() {
 
                 <p>
                   Notes:{" "}
-                  {entry.notes?.startsWith("http") ? (
+                  {entry.notes && entry.notes.startsWith("http") ? (
                     <a
                       href={entry.notes}
                       target="_blank"
@@ -430,13 +431,14 @@ export default function Home() {
 
                 <div style={{ marginTop: "10px" }}>
                   <button
+                    type="button"
                     onClick={() => editEntry(entry)}
                     style={{
                       padding: "6px 12px",
-                      cursor: "pointer",
                       marginRight: "10px",
-                      background: "#4d79ff",
-                      color: "white",
+                      cursor: "pointer",
+                      backgroundColor: "#4d79ff",
+                      color: "#fff",
                       border: "none",
                       borderRadius: "4px",
                     }}
@@ -445,12 +447,13 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => deleteEntry(entry.id)}
                     style={{
                       padding: "6px 12px",
                       cursor: "pointer",
-                      background: "#ff4d4d",
-                      color: "white",
+                      backgroundColor: "#ff4d4d",
+                      color: "#fff",
                       border: "none",
                       borderRadius: "4px",
                     }}
